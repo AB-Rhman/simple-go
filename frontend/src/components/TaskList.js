@@ -1,6 +1,10 @@
 import React from "react";
 
 function TaskList({ tasks }) {
+  if (!tasks || tasks.length === 0) {
+    return <p>No tasks found.</p>;
+  }
+
   return (
     <ul>
       {tasks.map((task) => (
