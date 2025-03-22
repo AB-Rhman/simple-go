@@ -18,7 +18,7 @@ services:
 
   backend:
     build:
-      context: ../backend
+      context: ./backend
       dockerfile: Dockerfile
     image: abrhman/simple-go-backend:v1
     ports:
@@ -35,7 +35,7 @@ services:
 
   frontend:
     build:
-      context: ../frontend
+      context: ./frontend
       dockerfile: Dockerfile
     image: abrhman/simple-go-frontend:v1
     ports:
