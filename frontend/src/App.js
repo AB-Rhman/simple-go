@@ -16,14 +16,16 @@ function App() {
     try {
       setIsLoading(true);
       const res = await fetch("/api/tasks");
+      console.log('Response status:', res.status);
       if (!res.ok) {
-        throw new Error("Failed to fetch tasks");
+        throw new Error(`Failed to fetch tasks: ${res.status}`);
       }
       const data = await res.json();
+      console.log('Fetched data:', data);
       setTasks(data || []);
       setError(null);
     } catch (err) {
-      console.error(err);
+      console.error('Detailed error:', err);
       setError("Failed to load tasks. Please try again later.");
       setTasks([]);
     } finally {
