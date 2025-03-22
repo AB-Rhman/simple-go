@@ -3,3 +3,6 @@ build:
 
 run: build
 	./bin/myapp
+	
+test:
+	go test -v ./...
