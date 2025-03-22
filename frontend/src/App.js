@@ -15,7 +15,7 @@ function App() {
   const fetchTasks = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch("/tasks");
+      const res = await fetch("/api/tasks");
       if (!res.ok) {
         throw new Error("Failed to fetch tasks");
       }
@@ -34,7 +34,7 @@ function App() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch("/tasks", {
+      const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: newTask }),
