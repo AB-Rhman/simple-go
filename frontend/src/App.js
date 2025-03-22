@@ -15,17 +15,20 @@ function App() {
   const fetchTasks = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch("/api/tasks");
-      console.log('Response status:', res.status);
+      const res = await fetch("/api/tasks", {
+        method: "GET",
+        headers: {
+          "Accept": "application/json"
+        }
+      });
       if (!res.ok) {
-        throw new Error(`Failed to fetch tasks: ${res.status}`);
+        throw new Error("Failed to fetch tasks");
       }
       const data = await res.json();
-      console.log('Fetched data:', data);
       setTasks(data || []);
       setError(null);
     } catch (err) {
-      console.error('Detailed error:', err);
+      console.error(err);
       setError("Failed to load tasks. Please try again later.");
       setTasks([]);
     } finally {
@@ -38,7 +41,9 @@ function App() {
     try {
       const res = await fetch("/api/tasks", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({ title: newTask }),
       });
       
