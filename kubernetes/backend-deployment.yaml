@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: go-app-backend:latest
+        image: abrhman/simple-go-backend:v1
         ports:
         - containerPort: 8080
         env:
