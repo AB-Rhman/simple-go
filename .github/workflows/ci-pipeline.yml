@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: CI Pipeline
 
 on:
   workflow_dispatch:
@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd backend && go mod download
-          cd ../frontend && npm install
+          cd ../frontend && npm install && npm install react-scripts --save-dev
 
       - name: Run backend tests with coverage
         run: |
@@ -43,6 +43,7 @@ jobs:
       - name: Run frontend tests with coverage
         run: |
           cd frontend
+          npm install react-scripts --save-dev
           npm test -- --coverage --watchAll=false
 
   build-and-scan:
