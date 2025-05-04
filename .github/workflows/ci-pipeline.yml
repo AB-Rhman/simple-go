@@ -43,6 +43,7 @@ jobs:
       - name: Run frontend tests with coverage
         run: |
           cd frontend
+          CI=true npm test -- --coverage --passWithNoTests
           npm install react-scripts --save-dev
           npm test -- --coverage --watchAll=false
 
@@ -97,4 +98,4 @@ jobs:
       - name: Push frontend image
         run: |
           docker push ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
-          docker push ${{ env.FRONTEND_IMAGE }}:latest 
+          docker push ${{ env.FRONTEND_IMAGE }}:latest
