@@ -20,7 +20,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: abrhman/simple-go-backend:v1
+    image: abrhman/simple-go-backend:latest
     ports:
       - "8080:8080"
     environment:
@@ -37,7 +37,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    image: abrhman/simple-go-frontend:v1
+    image: abrhman/simple-go-frontend:latest
     ports:
       - "80:80"
     depends_on:

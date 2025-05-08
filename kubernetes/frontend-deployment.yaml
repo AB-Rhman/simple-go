@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: abrhman/simple-go-frontend:v1
+        image: abrhman/simple-go-frontend:latest
         ports:
         - containerPort: 80
         resources:
