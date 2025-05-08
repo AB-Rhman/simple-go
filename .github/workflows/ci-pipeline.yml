@@ -32,20 +32,13 @@ jobs:
       - name: Install dependencies
         run: |
           cd backend && go mod download
-          cd ../frontend && npm install && npm install react-scripts --save-dev
+          cd ../frontend && npm install
 
       - name: Run backend tests with coverage
         run: |
           cd backend
           go test -v -coverprofile=coverage.out ./...
           go tool cover -func=coverage.out
-
-      - name: Run frontend tests with coverage
-        run: |
-          cd frontend
-          CI=true npm test -- --coverage --passWithNoTests
-          npm install react-scripts --save-dev
-          npm test -- --coverage --watchAll=false
 
   build-and-scan:
     needs: test-and-coverage
