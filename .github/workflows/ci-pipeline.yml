@@ -10,6 +10,7 @@ on:
 env:
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
   DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+  SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
   BACKEND_IMAGE: abrhman/simple-go-backend
   FRONTEND_IMAGE: abrhman/simple-go-frontend
 
@@ -92,3 +93,18 @@ jobs:
         run: |
           docker push ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
           docker push ${{ env.FRONTEND_IMAGE }}:latest
+
+      - name: Notify Slack about new release
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          channel-id: 'deployments'
+          slack-message: |
+            🚀 New Release Ready for Deployment!
+            • All tests passed successfully
+            • Docker images built and pushed
+            • Backend Image: ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+            • Frontend Image: ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+            • Commit: ${{ github.sha }}
+            • Branch: ${{ github.ref }}
+        env:
+          SLACK_BOT_TOKEN: ${{ env.SLACK_BOT_TOKEN }}
