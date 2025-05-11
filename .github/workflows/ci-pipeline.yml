@@ -107,4 +107,4 @@ jobs:
             • Commit: ${{ github.sha }}
             • Branch: ${{ github.ref }}
         env:
-          SLACK_BOT_TOKEN: ${{ env.SLACK_BOT_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
