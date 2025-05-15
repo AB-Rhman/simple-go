@@ -6,6 +6,7 @@ variable "instance_type" {}
 variable "ami" {}
 variable "db_name" {}
 variable "db_username" {}
+variable "cluster_name" {}
 variable "db_password" {
   sensitive = true
 }
