@@ -22,20 +22,11 @@ spec:
           {{- toYaml .Values.backend.resources | nindent 10 }}
         env:
         - name: PORT
-          valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: PORT
+          value: {{ .Values.config.port | quote }}
         - name: POSTGRES_DB
-          valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: POSTGRES_DB
+          value: {{ .Values.config.postgres.db | quote }}
         - name: POSTGRES_HOST
-          valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: POSTGRES_HOST
+          value: {{ .Values.config.postgres.host | quote }}
         - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
