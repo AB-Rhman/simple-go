@@ -1,0 +1,70 @@
+# Global settings
+global:
+  imagePullPolicy: IfNotPresent
+
+# Backend configuration
+backend:
+  name: backend
+  image:
+    repository: abrhman/simple-go-backend
+    tag: latest
+  replicas: 3
+  resources:
+    limits:
+      memory: "256Mi"
+      cpu: "500m"
+    requests:
+      memory: "128Mi"
+      cpu: "250m"
+  service:
+    type: ClusterIP
+    port: 8080
+
+# Frontend configuration
+frontend:
+  name: frontend
+  image:
+    repository: abrhman/simple-go-frontend
+    tag: latest
+  replicas: 2
+  resources:
+    limits:
+      memory: "128Mi"
+      cpu: "250m"
+    requests:
+      memory: "64Mi"
+      cpu: "100m"
+  service:
+    type: ClusterIP
+    port: 80
+
+# PostgreSQL configuration
+postgres:
+  name: postgres
+  image:
+    repository: postgres
+    tag: alpine
+  replicas: 1
+  resources:
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+  service:
+    type: ClusterIP
+    port: 5432
+
+# Application configuration
+config:
+  port: "8080"
+  postgres:
+    db: "simplego"
+    host: "postgres-service"
+
+# Secrets (these should be overridden in production)
+secrets:
+  postgres:
+    user: "postgres"
+    password: "postgres" 
