@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  PORT: {{ .Values.config.port | quote }}
+  POSTGRES_DB: {{ .Values.config.postgres.db | quote }}
+  POSTGRES_HOST: {{ .Values.config.postgres.host | quote }} 
