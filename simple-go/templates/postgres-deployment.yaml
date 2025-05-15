@@ -22,10 +22,7 @@ spec:
           {{- toYaml .Values.postgres.resources | nindent 10 }}
         env:
         - name: POSTGRES_DB
-          valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: POSTGRES_DB
+          value: {{ .Values.config.postgres.db | quote }}
         - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
