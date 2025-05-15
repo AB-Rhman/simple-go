@@ -22,7 +22,4 @@ spec:
           {{- toYaml .Values.frontend.resources | nindent 10 }}
         env:
         - name: BACKEND_URL
-          valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: POSTGRES_HOST 
+          value: "http://{{ .Values.backend.name }}-service:{{ .Values.backend.service.port }}" 
