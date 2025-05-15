@@ -76,3 +76,12 @@ module "rds" {
   Environment        = var.Environment
   Owner              = var.Owner
 }
+
+module "eks" {
+  source             = "./modules/eks"
+  cluster_name       = var.cluster_name
+  vpc_id             = module.vpc.vpc_id
+  public_subnet_ids  = [module.vpc.public_subnet_1_id, module.vpc.public_subnet_2_id]
+  Environment        = var.Environment
+  Owner              = var.Owner
+}
