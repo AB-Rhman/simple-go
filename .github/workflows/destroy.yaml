@@ -1,0 +1,65 @@
+name: Destroy All Infrastructure
+
+on: 
+  workflow_dispatch:
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+
+    steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Setup Terraform
+          uses: hashicorp/setup-terraform@v3
+          with:
+            cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+        - name: Terraform Init
+          working-directory: EKS/
+          run: terraform init
+
+        - name: Terraform Apply
+          working-directory: EKS/
+          run: terraform destroy -auto-approve
+
+        - name: Notify Infrastructure Down
+          uses: slackapi/slack-github-action@v1.24.0
+          with:
+            channel-id: 'deployments'
+            slack-message: |
+              :warning: Infrastructure Destruction Complete : ( !!!!! :warning:
+              
+              *Environment:* Production
+              *Status:* :x: Infrastructure Destroyed
+              
+              *Components Removed:*
+              - EKS Cluster
+              - NLB Ingress Controller
+              - Prometheus Stack
+              - Loki Stack
+              
+              *Triggered by:* ${{ github.actor }}
+          env:
+            SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+        - name: Notify Failure
+          if: failure()
+          uses: slackapi/slack-github-action@v1.24.0
+          with:
+            channel-id: 'deployments'
+            slack-message: |
+              :x: Infrastructure Destruction Failed! :x:
+              
+              *Environment:* Production
+              *Status:* :x: Destruction Failed
+              
+              *Error Details:*
+              ```${{ github.event.head_commit.message }}```
+              
+              *Triggered by:* ${{ github.actor }}
+          env:
+            SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+        

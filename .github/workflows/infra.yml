@@ -1,0 +1,223 @@
+name: GET Infrastructure UP
+
+on: 
+  workflow_dispatch:
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+
+    steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Install kubectl CLI
+          uses: azure/setup-kubectl@v3
+          with:
+              version: 'v1.30.0'
+
+        - name: Setup Terraform
+          uses: hashicorp/setup-terraform@v3
+          with:
+              cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+        - name: Install AWS cli
+          id: install-aws-cli
+          uses: unfor19/install-aws-cli-action@master
+          with:
+            version: '2.17.15'
+
+        - name: Configure AWS credentials
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            aws-region: us-east-1
+            aws-access-key-id: ${{secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+        - name: Provision the infrastructure (init)
+          working-directory: EKS/
+          run: |
+            terraform init \
+              -backend-config="token=${{ secrets.TF_API_TOKEN }}" \
+              -backend-config="organization=your-org-name" \
+              -backend-config="workspace=eks-infrastructure"
+
+        - name: Provision the infrastructure (plan)
+          working-directory: EKS/
+          run: |
+            terraform plan
+
+        - name: Provision the infrastructure (apply)
+          working-directory: EKS/
+          run: |
+            terraform apply -auto-approve
+
+        - name: Create a KUBECONFIG
+          run: |
+            aws eks update-kubeconfig --region us-east-1 --name demo-eks
+
+        - name: Capture Terraform Output
+          working-directory: EKS/
+          id: output
+          run: |
+            echo "Retrieving NodeInstanceRole..."
+            NodeInstanceRole=$(terraform output -raw NodeInstanceRole)
+            echo "NodeInstanceRole=$NodeInstanceRole" >> $GITHUB_ENV
+
+        - name: Download the node authentication ConfigMap
+          working-directory: EKS/
+          run: |
+            curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/cloudformation/2020-10-29/aws-auth-cm.yaml
+
+        - name: Replace Part of the File
+          working-directory: EKS/
+          run: |
+             sed -i "s|<ARN of instance role (not instance profile)>|${{ env.NodeInstanceRole }}|g"  aws-auth-cm.yaml
+
+        - name: Apply the edited ConfigMap to join the nodes
+          working-directory: EKS/
+          run: |
+            kubectl apply -f aws-auth-cm.yaml
+
+        - name: Check node status
+          run: |
+            sleep 100
+
+  Install-Ingress:
+    needs: setup
+    runs-on: ubuntu-latest
+
+    steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Install kubectl CLI
+          uses: azure/setup-kubectl@v3
+          with:
+            version: 'v1.33.0'
+
+        - name: Install AWS cli
+          id: install-aws-cli
+          uses: unfor19/install-aws-cli-action@master
+          with:
+            version: '2.17.13'
+
+        - name: Configure AWS credentials
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: us-east-1
+
+        - name: Create a KUBECONFIG
+          run: |
+            aws eks update-kubeconfig --region us-east-1 --name demo-eks
+
+        - name: Install NLB
+          run: |
+            kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/deploy/static/provider/aws/deploy.yaml
+
+  Monitoring-Stack-Install:
+    needs: setup
+    runs-on: ubuntu-latest
+
+    steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Install kubectl CLI
+          uses: azure/setup-kubectl@v3
+          with:
+            version: 'v1.33.0'
+
+        - name: Install AWS cli
+          id: install-aws-cli
+          uses: unfor19/install-aws-cli-action@master
+          with:
+            version: '2.17.13'
+
+        - name: Configure AWS credentials
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: us-east-1
+
+        - name: Install Helm
+          run: |
+            curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+            chmod 700 get_helm.sh
+            ./get_helm.sh
+
+        - name: Create a KUBECONFIG
+          run: |
+            aws eks update-kubeconfig --region us-east-1 --name demo-eks
+
+        - name: Add Prometheus-community charts
+          run: |
+            helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+            helm repo update
+
+        - name: Install kube-prometheus-stack By helm chart
+          run: |
+            kubectl create namespace monitoring
+            helm install prometheus prometheus-community/kube-prometheus-stack --namespace monitoring
+        
+        - name: Install loki-stack By helm chart
+          run: |
+            helm repo add grafana https://grafana.github.io/helm-charts
+            helm install loki grafana/loki-stack --namespace monitoring
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: [Install-Ingress, Monitoring-Stack-Install]
+
+    steps:
+      - name: Notify Success
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          channel-id: 'deployments'
+          slack-message: |
+            :cloud: Infrastructure Deployment Successful! :cloud:
+            
+            *Environment:* Production
+            *Status:* :white_check_mark: Infrastructure Ready
+            
+            *Details:*
+            - EKS Cluster: demo-eks
+            - Region: us-east-1
+            - Ingress Controller: Installed
+            - Monitoring Stack: Installed
+            
+            *Components Deployed:*
+            - EKS Cluster
+            - NLB Ingress Controller
+            - Prometheus Stack
+            - Loki Stack
+            
+            *Triggered by:* ${{ github.actor }}
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+      - name: Notify Failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          channel-id: 'deployments'
+          slack-message: |
+            :x: Infrastructure Deployment Failed! :x:
+            
+            *Environment:* Production
+            *Status:* :x: Deployment Failed
+            
+            *Error Details:*
+            ```${{ github.event.head_commit.message }}```
+            
+            *Triggered by:* ${{ github.actor }}
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+    
+        
+
+        
+          

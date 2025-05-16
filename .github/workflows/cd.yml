@@ -1,0 +1,92 @@
+name: Continuous Deployment
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: demo-eks
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.12.0
+
+      - name: Deploy to EKS
+        run: |
+          helm upgrade --install simple-go ./simple-go \
+            --namespace production \
+            --create-namespace \
+            --set frontend.replicaCount=2 \
+            --set backend.replicaCount=2 \
+            --wait
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/frontend -n production
+          kubectl rollout status deployment/backend -n production
+
+      - name: Get application URL
+        id: url
+        run: |
+          INGRESS_URL=$(kubectl get ingress simple-go -n production -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          echo "url=$INGRESS_URL" >> $GITHUB_OUTPUT
+
+      - name: Notify Slack
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          channel-id: 'deployments'
+          slack-message: |
+            :rocket: Deployment Successful! :rocket:
+            
+            *Application:* Simple Go
+            *Environment:* Production
+            *Status:* :white_check_mark: Deployed Successfully
+            *URL:* https://${{ steps.url.outputs.url }}
+            
+            *Deployment Details:*
+            - Frontend Replicas: 2
+            - Backend Replicas: 2
+            - Namespace: production
+            
+            *Commit:* ${{ github.sha }}
+            *Triggered by:* ${{ github.actor }}
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+      - name: Notify on Failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          channel-id: 'deployments'
+          slack-message: |
+            :x: Deployment Failed! :x:
+            
+            *Application:* Simple Go
+            *Environment:* Production
+            *Status:* :x: Deployment Failed
+            
+            *Error Details:*
+            ```${{ github.event.head_commit.message }}```
+            
+            *Commit:* ${{ github.sha }}
+            *Triggered by:* ${{ github.actor }}
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }} 
