@@ -78,7 +78,7 @@ module "rds" {
 }
 
 module "eks" {
-  source             = "./modules/eks"
+  source             = "./modules/EKS"
   cluster_name       = var.cluster_name
   vpc_id             = module.vpc.vpc_id
   public_subnet_ids  = [module.vpc.public_subnet_1_id, module.vpc.public_subnet_2_id]
